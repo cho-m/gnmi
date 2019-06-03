@@ -12,6 +12,10 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+========================================================================
+
+Modified by: Michael Cho <micho2@cisco.com>
 */
 
 // The gnmi_cli program implements the GNMI CLI.
@@ -70,7 +74,9 @@ var (
 	getFlag          = flag.Bool("get", false, `When set, CLI will perform a Get request. Usage: gnmi_cli -get -proto <gnmi.GetRequest> -address <address> [other flags ...]`)
 	setFlag          = flag.Bool("set", false, `When set, CLI will perform a Set request. Usage: gnmi_cli -set -proto <gnmi.SetRequest> -address <address> [other flags ...]`)
 
-	withUserPass = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
+	withUserPass = flag.Bool("with_user_pass", false, "When set, CLI will require username/password to use when connecting to a target.")
+	username     = flag.String("username", "", "Set username as argument rather than via prompt.")
+	password     = flag.String("password", "", "Set password as argument rather than via prompt.")
 
 	// Certificate files.
 	caCert     = flag.String("ca_crt", "", "CA certificate file. Used to verify server TLS certificate.")
@@ -291,18 +297,26 @@ func executeSubscribe(ctx context.Context) error {
 func readCredentials() (*client.Credentials, error) {
 	c := &client.Credentials{}
 
-	fmt.Print("username: ")
-	_, err := fmt.Scan(&c.Username)
-	if err != nil {
-		return nil, err
+	if *username == "" {
+		fmt.Print("username: ")
+		_, err := fmt.Scan(&c.Username)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		c.Username = *username
 	}
 
-	fmt.Print("password: ")
-	pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		return nil, err
+	if *password == "" {
+		fmt.Print("password: ")
+		pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			return nil, err
+		}
+		c.Password = string(pass)
+	} else {
+		c.Password = *password
 	}
-	c.Password = string(pass)
 
 	return c, nil
 }
